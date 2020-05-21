@@ -4,7 +4,7 @@
 
 A very simple raytracer.
 
-Math.js: ~5000 ms
-Numeric.js: ~400 ms
-LALOLib: ~260 ms
-Three.JS Vector3: ~150
+- Math.js: ~5000 ms
+- Numeric.js: ~400 ms
+- LALOLib: ~260 ms
+- Three.JS Vector3: ~150
