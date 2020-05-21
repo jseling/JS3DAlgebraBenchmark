@@ -1,0 +1,110 @@
+<html>
+<head>
+	<title>Raytracer with LALOLib</title>
+	<script src="http://mlweb.loria.fr/lalolib.js"></script>
+</head>
+<body>
+<canvas id="mycanvas"></canvas>
+<script>
+	//https://github.com/ssloy/tinyraytracer/wiki/Part-1:-understandable-raytracing
+	const canvas = document.getElementById("mycanvas");
+	
+	//USAR W=2, H=5 para testes
+	canvas.width = 640;
+	canvas.height = 480;
+
+	const ctx = canvas.getContext("2d");
+	
+    const width = canvas.width;
+    const height = canvas.height;	
+	
+	
+	//https://mlweb.loria.fr/lalolab/lalolibefficient.html
+	class Sphere {
+	  constructor(position, radius) {
+		this.position = position;
+		this.radius = radius;
+	  }
+	  
+	  ray_intersect(orig, dir, dist){
+		const vL = subVectors(this.position, orig); 
+		
+		//console.log(vL);
+		
+        const ntca = dot(vL, dir);
+		
+        const nd2 = dot(vL,vL) - (ntca * ntca);
+		
+		
+		//console.log(nd2);
+		
+        if (nd2 > (this.radius * this.radius)) return false;		
+		
+        const nthc = Math.sqrt(this.radius * this.radius - nd2);
+		
+        dist = ntca - nthc;
+		
+        const nt1 = ntca + nthc;
+		
+        if (dist < 0) dist = nt1;
+		
+        if (dist < 0) return false;
+		
+        return true;		
+	  
+	  }
+	}	
+	
+	const cast_ray = (orig, dir, sphere) => {
+		let sphere_dist = Math.Infinity;
+		if (!sphere.ray_intersect(orig, dir, sphere_dist)) {
+			return [50, 200, 230]; // background color
+		}
+		return [130, 130, 110];
+	}	
+	
+	
+	const render = (ctx, width, height) => {
+		const pixel = ctx.createImageData(width, height);	
+		
+		const sphere = new Sphere([-3, 0, -16], 2);
+		const nfov = Math.PI / 2;
+				
+		//console.log(nfov);		
+				
+		for (let j = 0; j < height; j++) {
+			for (let i = 0; i < width; i++) {	
+			
+
+				const nx =  (2*(i + 0.5)/width  - 1) * Math.tan(nfov/2) * width/height;
+				const ny = -(2*(j + 0.5)/height - 1) * Math.tan(nfov/2);
+				
+				//console.log(nx + ' ' + ny);
+				
+				let vdir = [nx, ny, -1];
+				const nnorm = norm(vdir);
+				vdir = divVectorScalar(vdir, nnorm);	
+				
+				//console.log(vdir);
+						
+				const color = cast_ray([0,0,0], vdir, sphere);
+			
+				const shift = ( j * (width * 4) + i * 4);
+				
+				pixel.data[0 + shift] = color[0];
+				pixel.data[1 + shift] = color[1];
+				pixel.data[2 + shift] = color[2];
+				pixel.data[3 + shift] = 255;		
+			}
+		}	
+
+		ctx.putImageData(pixel, 0, 0);		
+	}	
+	
+	const start = new Date().getTime();
+	render(ctx, width, height);	
+	console.log(new Date().getTime() - start);
+
+</script>
+</body>
+</html>
