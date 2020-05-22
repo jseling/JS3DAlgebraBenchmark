@@ -8,6 +8,6 @@ A very simple raytracer.
 - Numeric.js: ~400 ms
 - LALOLib: ~260 ms
 - Three.JS Vector3: ~150 ms
-- My custon Vector3D ES6 class based on Three.JS Vector3: ~115 ms
+- My custom Vector3D ES6 class based on Three.JS Vector3: ~115 ms
 
 ![](https://raw.githubusercontent.com/jersonSeling/JS3DAlgebraBenchmark/master/render.png)
