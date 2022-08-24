@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title>Raytracer with Three.js Vector3</title>
+	<title>Raytracer with MyVector3D</title>
 </head>
 <body>
 <canvas id="mycanvas"></canvas>
@@ -9,8 +9,8 @@
 	const canvas = document.getElementById("mycanvas");
 	
 	//USAR W=2, H=5 para testes
-	canvas.width = 640;
-	canvas.height = 480;
+	canvas.width = 2;
+	canvas.height = 5;
 
 	const ctx = canvas.getContext("2d");
 	
@@ -32,13 +32,21 @@
 			return this;
 		}		
 		
-		sub(a, b){
-			this.x = a.x - b.x;
-			this.y = a.y - b.y;
-			this.z = a.z - b.z;
+		sub(a){
+			this.x = this.x - a.x;
+			this.y = this.y - a.y;
+			this.z = this.z - a.z;
 
 			return this;
 		}
+		
+		add(a){
+			this.x = a.x + this.x;
+			this.y = a.y + this.y;
+			this.z = a.z + this.z;
+
+			return this;
+		}		
 		
 		dot(v){
 			return this.x * v.x + this.y * v.y + this.z * v.z;
@@ -64,16 +72,24 @@
 			return this.divideScalar( this.magnitude() );
 		}				
 	}	
+	
+	class Material {
+		constructor(diffuseColor){
+			this.diffuseColor = diffuseColor;	
+		}
+	}		
 
 	class Sphere {
-	  constructor(position, radius) {
+	  constructor(position, radius, material) {
 		this.position = position;
 		this.radius = radius;
+		this.material = material;
 	  }
 	  
-	  ray_intersect(orig, dir, dist){
-		const vL = new Vector3D(0,0,0).sub(this.position, orig);  
-		
+	  ray_intersect(orig, dir, dist_t){  
+	  
+		const vL = new Vector3D(0,0,0).copy(this.position).sub(orig); 
+				
         const ntca = new Vector3D(0,0,0).copy(vL).dot(dir);
 		
         const nd2 = new Vector3D(0,0,0).copy(vL).dot(vL) - (ntca * ntca);
@@ -82,31 +98,77 @@
 		
         const nthc = Math.sqrt(this.radius * this.radius - nd2);
 		
-        dist = ntca - nthc;
+        let dist = ntca - nthc;
 		
         const nt1 = ntca + nthc;
 		
-        if (dist < 0) dist = nt1;
+        if (dist < 0) dist = nt1;		
+
 		
         if (dist < 0) return false;
+		
+		dist_t[0] = dist;		
 		
         return true;		
 	  
 	  }
 	}	
 	
-	const cast_ray = (orig, dir, sphere) => {
-		let sphere_dist = Math.Infinity;
-		if (!sphere.ray_intersect(orig, dir, sphere_dist)) {
-			return [50, 200, 230]; // background color
+	class Light {
+		constructor(position, intensity){
+			this.position = position;
+			this.intensity = intensity;		
 		}
-		return [130, 130, 110]; //sphere color
-	}		
+	}
 	
-	const render = (ctx, width, height) => {
+	const scene_intersect = (orig, dir, objects, hitProps) => {
+		let hit_distance = Infinity;
+		
+		for (let j = 0; j < objects.length; j++) {		
+			const element = objects[j];			
+
+			let dist_i = [];
+			
+			if (element.ray_intersect(orig, dir, dist_i)) {
+				if (dist_i[0] < hit_distance){
+					hit_distance = dist_i[0];
+
+					hitProps.hit = new Vector3D(0,0,0).copy(orig).add(new Vector3D(0,0,0).copy(dir).multiplyScalar(dist_i[0]));
+					
+					hitProps.normal = new Vector3D(0,0,0).copy(hitProps.hit).sub(element.position).normalize();
+					hitProps.material = element.material;
+				}
+			}
+		}
+		return hit_distance < Infinity;
+	
+	}
+	
+	const cast_ray = (orig, dir, objects, lights) => {
+		let hit;
+		let normal;
+		let material;		
+		
+		const hitProps = { hit, normal, material };
+		
+		if (!scene_intersect(orig, dir, objects, hitProps)) {
+			return new Vector3D(0.2, 0.7, 0.8); // background color
+		}
+
+		let diffuse_light_intensity  = 0;
+		for (let i=0; i<lights.length; i++) {
+			const light_dir = new Vector3D(0,0,0).copy(lights[i].position).sub(hitProps.hit).normalize();
+			diffuse_light_intensity  += lights[i].intensity * Math.max(0, light_dir.dot(hitProps.normal));
+		}	
+		
+		return new Vector3D(0,0,0).copy(hitProps.material.diffuseColor).multiplyScalar(diffuse_light_intensity); //sphere color
+	}			
+
+	
+	
+	const render = (ctx, width, height, objects, lights) => {
 		const pixel = ctx.createImageData(width, height);	
 		
-		const sphere = new Sphere(new Vector3D(-3, 0, -16), 2);
 		const nfov = Math.PI / 2;
 				
 		for (let j = 0; j < height; j++) {
@@ -116,23 +178,44 @@
 				
 				const vdir = new Vector3D(nx, ny, -1).normalize();
 				
+				
+				
 				const vorig = new Vector3D(0, 0, 0);
+				
+				console.log(vdir);
 									
-				const color = cast_ray(vorig, vdir, sphere);
-			
+				const color = cast_ray(vorig, vdir, objects, lights);
+							
 				const shift = ( j * (width * 4) + i * 4);
 				
-				pixel.data[0 + shift] = color[0];
-				pixel.data[1 + shift] = color[1];
-				pixel.data[2 + shift] = color[2];
-				pixel.data[3 + shift] = 255;		
+				pixel.data[0 + shift] = color.x * 255;
+				pixel.data[1 + shift] = color.y * 255;
+				pixel.data[2 + shift] = color.z * 255;
+				pixel.data[3 + shift] = 255;	
+
+				
 			}
 		}	
 		ctx.putImageData(pixel, 0, 0);		
 	}	
+
+
+
+	const ivory = new Material(new Vector3D(0.4, 0.4, 0.3));
+	const redRubber = new Material(new Vector3D(0.3, 0.1, 0.1));
+
+	const objects = [];
+	objects.push(new Sphere(new Vector3D(-3, 0, -16), 2, ivory));
+	objects.push(new Sphere(new Vector3D(-1, -1.5, -12), 2, redRubber));
+	objects.push(new Sphere(new Vector3D(1.5, -0.5, -18), 3, redRubber));
+	objects.push(new Sphere(new Vector3D(7, 5, -18), 4, ivory));	
+
 	
+	const lights = [];	
+	lights.push(new Light(new Vector3D(-20, 20,  20), 1.5));
+
 	const start = new Date().getTime();
-	render(ctx, width, height);	
+	render(ctx, width, height, objects, lights);	
 	console.log(new Date().getTime() - start);
 
 </script>

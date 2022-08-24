@@ -10,8 +10,8 @@
 	const canvas = document.getElementById("mycanvas");
 	
 	//USAR W=2, H=5 para testes
-	canvas.width = 640;
-	canvas.height = 480;
+	canvas.width = 2;
+	canvas.height = 5;
 
 	const ctx = canvas.getContext("2d");
 	
@@ -29,7 +29,7 @@
 	  ray_intersect(orig, dir, dist){
 		const vL = new THREE.Vector3(0,0,0).subVectors(this.position, orig);  
 		
-		//console.log(vL);		
+		console.log(vL);	
 		
         const ntca = new THREE.Vector3(0,0,0).copy(vL).dot(dir);
 		
@@ -46,6 +46,8 @@
         const nt1 = ntca + nthc;
 		
         if (dist < 0) dist = nt1;
+		
+		//console.log(nt1);
 		
         if (dist < 0) return false;
 		
